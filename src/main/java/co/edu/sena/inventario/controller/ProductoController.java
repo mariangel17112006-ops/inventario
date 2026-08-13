@@ -9,10 +9,10 @@ import java.util.List;
 public class ProductoController {
 
     private final List<Producto> productos = List.of(
-        new Producto(1L, "Papa pastusa", 2500.0, 50),
-        new Producto(2L, "Tomate", 3200.0, 30),
-        new Producto(3L, "Fresa", 8500.0, 20)
-    );
+    new Producto(1L, "Lechuga crespa", 1800.0, 40),
+    new Producto(2L, "Zanahoria", 2200.0, 60),
+    new Producto(3L, "Cebolla cabezona", 3500.0, 25)
+);
 
     @GetMapping
     public List<Producto> listarProductos() {
