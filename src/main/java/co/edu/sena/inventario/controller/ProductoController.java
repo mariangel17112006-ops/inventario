@@ -14,7 +14,7 @@ public class ProductoController {
     private List<Producto> productos = new ArrayList<>();
 
     public ProductoController() {
-        // Cargar 5 productos
+        // Cargar los 5 productos iniciales
         productos.add(new Producto(1L, "Lechuga crespa", 1800.0, 30));
         productos.add(new Producto(2L, "Zanahoria", 2200.0, 60));
         productos.add(new Producto(3L, "Cebolla cabezona", 3500.0, 25));
@@ -22,13 +22,52 @@ public class ProductoController {
         productos.add(new Producto(5L, "Tomate chonto", 3000.0, 35));
     }
 
-    // GET general
+    // 1. GET -> Consultar todos los productos
     @GetMapping
     public List<Producto> obtenerTodos() {
         return productos;
     }
 
-    // 1. FILTRAR POR NOMBRE
+    // 2. GET POR ID -> Consultar un producto
+    @GetMapping("/{id}")
+    public Producto obtenerPorId(@PathVariable Long id) {
+        for (Producto p : productos) {
+            if (p.getId().equals(id)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    // 3. POST -> Crear un nuevo producto (¡El que nos faltaba!)
+    @PostMapping
+    public String crearProducto(@RequestBody Producto nuevo) {
+        productos.add(nuevo);
+        return "Producto '" + nuevo.getNombre() + "' agregado correctamente.";
+    }
+
+    // 4. PUT -> Actualizar un producto por ID
+    @PutMapping("/{id}")
+    public String actualizarProducto(@PathVariable Long id, @RequestBody Producto actualizado) {
+        for (Producto p : productos) {
+            if (p.getId().equals(id)) {
+                p.setNombre(actualizado.getNombre());
+                p.setPrecio(actualizado.getPrecio());
+                p.setCantidad(actualizado.getCantidad());
+                return "Producto con ID " + id + " actualizado correctamente.";
+            }
+        }
+        return "Producto no encontrado.";
+    }
+
+    // 5. DELETE -> Eliminar un producto por ID
+    @DeleteMapping("/{id}")
+    public String eliminarProducto(@PathVariable Long id) {
+        productos.removeIf(p -> p.getId().equals(id));
+        return "Producto con ID " + id + " eliminado del inventario.";
+    }
+
+    // 6. FILTRAR POR NOMBRE
     @GetMapping("/buscar/nombre/{nombre}")
     public List<Producto> buscarPorNombre(@PathVariable String nombre) {
         return productos.stream()
@@ -36,7 +75,7 @@ public class ProductoController {
                 .collect(Collectors.toList());
     }
 
-    // 2. FILTRAR POR CATEGORÍA
+    // 7. FILTRAR POR CATEGORÍA
     @GetMapping("/buscar/categoria/{categoria}")
     public List<Producto> buscarPorCategoria(@PathVariable String categoria) {
         return productos.stream()
@@ -53,7 +92,7 @@ public class ProductoController {
                 .collect(Collectors.toList());
     }
 
-    // 3. OPERACIÓN MATEMÁTICA (RESTA EN VENTA)
+    // 8. RESTAR STOCK EN VENTA
     @GetMapping("/{id}/vender/{comprados}")
     public String venderProducto(@PathVariable Long id, @PathVariable Integer comprados) {
         for (Producto p : productos) {
