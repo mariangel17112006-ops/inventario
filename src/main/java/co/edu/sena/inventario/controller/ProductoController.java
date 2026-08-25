@@ -30,17 +30,16 @@ public class ProductoController {
         return productos;
     }
 
-    // 2. GET POR ID -> Consultar un producto
+   // Reto 6: GET POR ID -> Devuelve 200 OK o 404 Not Found
     @GetMapping("/{id}")
-    public Producto obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id) {
         for (Producto p : productos) {
             if (p.getId().equals(id)) {
-                return p;
+                return ResponseEntity.ok(p);
             }
         }
-        return null;
+        return ResponseEntity.notFound().build();
     }
-
     // Reto 5 y 7: POST con validaciones y código 201 Created
     @PostMapping
     public ResponseEntity<?> crearProducto(@RequestBody Producto nuevo) {
