@@ -67,9 +67,9 @@ public class ProductoController {
         return "Producto con ID " + id + " eliminado del inventario.";
     }
 
-    // 6. FILTRAR POR NOMBRE
-    @GetMapping("/buscar/nombre/{nombre}")
-    public List<Producto> buscarPorNombre(@PathVariable String nombre) {
+    // 6. FILTRAR POR NOMBRE (Reto 2)
+    @GetMapping("/buscar")
+    public List<Producto> buscarPorNombre(@RequestParam String nombre) {
         return productos.stream()
                 .filter(p -> p.getNombre().toLowerCase().contains(nombre.toLowerCase()))
                 .collect(Collectors.toList());
