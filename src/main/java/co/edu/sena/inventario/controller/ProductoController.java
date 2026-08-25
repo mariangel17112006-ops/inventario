@@ -46,18 +46,12 @@ public class ProductoController {
         return "Producto '" + nuevo.getNombre() + "' agregado correctamente.";
     }
 
-    // 4. PUT -> Actualizar un producto por ID
-    @PutMapping("/{id}")
-    public String actualizarProducto(@PathVariable Long id, @RequestBody Producto actualizado) {
-        for (Producto p : productos) {
-            if (p.getId().equals(id)) {
-                p.setNombre(actualizado.getNombre());
-                p.setPrecio(actualizado.getPrecio());
-                p.setCantidad(actualizado.getCantidad());
-                return "Producto con ID " + id + " actualizado correctamente.";
-            }
-        }
-        return "Producto no encontrado.";
+    // Reto 4: GET /productos/precio?maximo=5000
+    @GetMapping("/precio")
+    public List<Producto> buscarPorPrecioMaximo(@RequestParam Double maximo) {
+        return productos.stream()
+                .filter(p -> p.getPrecio() <= maximo)
+                .collect(Collectors.toList());
     }
 
     // 5. DELETE -> Eliminar un producto por ID
@@ -75,22 +69,22 @@ public class ProductoController {
                 .collect(Collectors.toList());
     }
 
-    // 7. FILTRAR POR CATEGORÍA
-    @GetMapping("/buscar/categoria/{categoria}")
-    public List<Producto> buscarPorCategoria(@PathVariable String categoria) {
-        return productos.stream()
-                .filter(p -> {
-                    if (categoria.equalsIgnoreCase("Hortalizas")) {
-                        return p.getNombre().contains("Lechuga") || p.getNombre().contains("Cebolla");
-                    } else if (categoria.equalsIgnoreCase("Tubérculos")) {
-                        return p.getNombre().contains("Zanahoria") || p.getNombre().contains("Papa");
-                    } else if (categoria.equalsIgnoreCase("Frutas")) {
-                        return p.getNombre().contains("Tomate");
-                    }
-                    return false;
-                })
-                .collect(Collectors.toList());
-    }
+    // 7. FILTRAR POR CATEGORÍA (Reto 3)
+@GetMapping("/categoria")
+public List<Producto> buscarPorCategoria(@RequestParam String nombre) {
+    return productos.stream()
+            .filter(p -> {
+                if (nombre.equalsIgnoreCase("Hortalizas")) {
+                    return p.getNombre().contains("Lechuga") || p.getNombre().contains("Cebolla");
+                } else if (nombre.equalsIgnoreCase("Tubérculos")) {
+                    return p.getNombre().contains("Zanahoria") || p.getNombre().contains("Papa");
+                } else if (nombre.equalsIgnoreCase("Frutas")) {
+                    return p.getNombre().contains("Tomate");
+                }
+                return false;
+            })
+            .collect(Collectors.toList());
+}
 
     // 8. RESTAR STOCK EN VENTA
     @GetMapping("/{id}/vender/{comprados}")
