@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -16,12 +18,12 @@ public class ProductoController {
     private List<Producto> productos = new ArrayList<>();
 
     public ProductoController() {
-        // Cargar los 5 productos iniciales
-        productos.add(new Producto(1L, "Lechuga crespa", 1800.0, 30));
-        productos.add(new Producto(2L, "Zanahoria", 2200.0, 60));
-        productos.add(new Producto(3L, "Cebolla cabezona", 3500.0, 25));
-        productos.add(new Producto(4L, "Papa pastusa", 2500.0, 50));
-        productos.add(new Producto(5L, "Tomate chonto", 3000.0, 35));
+        // Cargar productos con cantidades para probar el Reto 8
+        productos.add(new Producto(1L, "Lechuga crespa", 1800.0, 3));   // Aparece (< 10)
+        productos.add(new Producto(2L, "Zanahoria", 2200.0, 8));        // Aparece (< 10)
+        productos.add(new Producto(3L, "Cebolla cabezona", 3500.0, 15)); // No aparece
+        productos.add(new Producto(4L, "Papa pastusa", 2500.0, 30));     // No aparece
+        productos.add(new Producto(5L, "Tomate chonto", 3000.0, 35));    // No aparece
     }
 
     // 1. GET -> Consultar todos los productos
@@ -30,7 +32,7 @@ public class ProductoController {
         return productos;
     }
 
-   // Reto 6: GET POR ID -> Devuelve 200 OK o 404 Not Found
+    // Reto 6: GET POR ID -> Devuelve 200 OK o 404 Not Found
     @GetMapping("/{id}")
     public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id) {
         for (Producto p : productos) {
@@ -40,6 +42,7 @@ public class ProductoController {
         }
         return ResponseEntity.notFound().build();
     }
+
     // Reto 5 y 7: POST con validaciones y código 201 Created
     @PostMapping
     public ResponseEntity<?> crearProducto(@RequestBody Producto nuevo) {
@@ -128,5 +131,28 @@ public class ProductoController {
             }
         }
         return "Producto no encontrado.";
+    }
+
+    // Reto 8: GET /productos/stock-bajo?limite=10
+    @GetMapping("/stock-bajo")
+    public List<Producto> obtenerStockBajo(@RequestParam(defaultValue = "10") Integer limite) {
+        return productos.stream()
+                .filter(p -> p.getCantidad() < limite)
+                .collect(Collectors.toList());
+    }
+
+    // Reto 9: GET /productos/resumen
+    @GetMapping("/resumen")
+    public Map<String, Object> obtenerResumen() {
+        int totalProductos = productos.size();
+        int totalUnidades = productos.stream().mapToInt(Producto::getCantidad).sum();
+        double valorTotal = productos.stream().mapToDouble(p -> p.getPrecio() * p.getCantidad()).sum();
+
+        Map<String, Object> resumen = new HashMap<>();
+        resumen.put("totalProductos", totalProductos);
+        resumen.put("totalUnidades", totalUnidades);
+        resumen.put("valorTotalInventario", valorTotal);
+
+        return resumen;
     }
 }
