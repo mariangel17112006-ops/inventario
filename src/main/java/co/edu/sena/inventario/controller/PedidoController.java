@@ -20,6 +20,11 @@ public class PedidoController {
         this.pedidoService = pedidoService;
     }
 
+    @GetMapping
+    public List<Pedido> obtenerTodos() {
+        return pedidoService.obtenerPendientes(); // O la llamada a obtenerTodos() de tu servicio
+    }
+
     @PostMapping
     public ResponseEntity<?> crearPedido(@RequestBody Pedido pedido) {
         try {
@@ -37,7 +42,8 @@ public class PedidoController {
     public ResponseEntity<?> confirmarPedido(@PathVariable Long id) {
         try {
             Pedido pedido = pedidoService.confirmarPedido(id);
-            if (pedido == null) return ResponseEntity.notFound().build();
+            if (pedido == null)
+                return ResponseEntity.notFound().build();
             return ResponseEntity.ok(pedido);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -48,7 +54,8 @@ public class PedidoController {
     public ResponseEntity<?> cancelarPedido(@PathVariable Long id) {
         try {
             Pedido pedido = pedidoService.cancelarPedido(id);
-            if (pedido == null) return ResponseEntity.notFound().build();
+            if (pedido == null)
+                return ResponseEntity.notFound().build();
             return ResponseEntity.ok(pedido);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -59,7 +66,8 @@ public class PedidoController {
     public ResponseEntity<?> despacharPedido(@PathVariable Long id) {
         try {
             Pedido pedido = pedidoService.despacharPedido(id);
-            if (pedido == null) return ResponseEntity.notFound().build();
+            if (pedido == null)
+                return ResponseEntity.notFound().build();
             return ResponseEntity.ok(pedido);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
