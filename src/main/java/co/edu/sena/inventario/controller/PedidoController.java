@@ -2,6 +2,7 @@ package co.edu.sena.inventario.controller;
 
 import co.edu.sena.inventario.model.EstadoPedido;
 import co.edu.sena.inventario.model.Pedido;
+import co.edu.sena.inventario.model.PrioridadPedido;
 import co.edu.sena.inventario.service.PedidoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,57 +21,64 @@ public class PedidoController {
         this.pedidoService = pedidoService;
     }
 
-    @GetMapping
-    public List<Pedido> obtenerTodos() {
-        return pedidoService.obtenerPendientes(); // O la llamada a obtenerTodos() de tu servicio
-    }
-
     @PostMapping
     public ResponseEntity<?> crearPedido(@RequestBody Pedido pedido) {
         try {
-            Pedido nuevo = pedidoService.crearPedido(pedido);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
+            Pedido creado = pedidoService.crearPedido(pedido);
+            return ResponseEntity.status(HttpStatus.CREATED).body(creado);
         } catch (IllegalArgumentException e) {
-            if ("PRODUCTO_NO_EXISTE".equals(e.getMessage())) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El producto solicitado no existe.");
-            }
-            return ResponseEntity.badRequest().body("Datos del pedido inválidos.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping
+    public List<Pedido> obtenerTodos() {
+        return pedidoService.obtenerTodos();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Pedido> obtenerPorId(@PathVariable Long id) {
+        return pedidoService.obtenerPorId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/confirmar")
     public ResponseEntity<?> confirmarPedido(@PathVariable Long id) {
         try {
-            Pedido pedido = pedidoService.confirmarPedido(id);
-            if (pedido == null)
+            Pedido confirmado = pedidoService.confirmarPedido(id);
+            if (confirmado == null) {
                 return ResponseEntity.notFound().build();
-            return ResponseEntity.ok(pedido);
+            }
+            return ResponseEntity.ok(confirmado);
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarPedido(@PathVariable Long id) {
         try {
-            Pedido pedido = pedidoService.cancelarPedido(id);
-            if (pedido == null)
+            Pedido cancelado = pedidoService.cancelarPedido(id);
+            if (cancelado == null) {
                 return ResponseEntity.notFound().build();
-            return ResponseEntity.ok(pedido);
+            }
+            return ResponseEntity.ok(cancelado);
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PutMapping("/{id}/despachar")
     public ResponseEntity<?> despacharPedido(@PathVariable Long id) {
         try {
-            Pedido pedido = pedidoService.despacharPedido(id);
-            if (pedido == null)
+            Pedido despachado = pedidoService.despacharPedido(id);
+            if (despachado == null) {
                 return ResponseEntity.notFound().build();
-            return ResponseEntity.ok(pedido);
+            }
+            return ResponseEntity.ok(despachado);
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -84,8 +92,8 @@ public class PedidoController {
         return pedidoService.obtenerUrgentes();
     }
 
-    @GetMapping("/estado")
-    public List<Pedido> obtenerPorEstado(@RequestParam EstadoPedido estado) {
+    @GetMapping("/estado/{estado}")
+    public List<Pedido> obtenerPorEstado(@PathVariable EstadoPedido estado) {
         return pedidoService.obtenerPorEstado(estado);
     }
 
@@ -95,10 +103,10 @@ public class PedidoController {
     }
 
     @GetMapping("/siguiente")
-    public ResponseEntity<?> obtenerSiguiente() {
+    public ResponseEntity<Pedido> obtenerSiguiente() {
         Pedido siguiente = pedidoService.obtenerSiguiente();
         if (siguiente == null) {
-            return ResponseEntity.ok("No hay pedidos pendientes por atender.");
+            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(siguiente);
     }
@@ -106,5 +114,16 @@ public class PedidoController {
     @GetMapping("/en-riesgo")
     public List<Pedido> obtenerEnRiesgo() {
         return pedidoService.obtenerEnRiesgo();
+    }
+
+    // --- ENDPOINTS BOSS 2 ---
+    @GetMapping("/prioridad")
+    public List<Pedido> obtenerPorPrioridad(@RequestParam PrioridadPedido prioridad) {
+        return pedidoService.obtenerPorPrioridad(prioridad);
+    }
+
+    @GetMapping("/buscar-cliente")
+    public List<Pedido> buscarPorCliente(@RequestParam String cliente) {
+        return pedidoService.buscarPorCliente(cliente);
     }
 }

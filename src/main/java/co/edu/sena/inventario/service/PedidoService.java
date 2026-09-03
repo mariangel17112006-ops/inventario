@@ -22,7 +22,6 @@ public class PedidoService {
         this.productoRepository = productoRepository;
     }
 
-    // Nivel 1 - Crear pedido
     public Pedido crearPedido(Pedido nuevoPedido) {
         Long productoId = obtenerProductoIdDePedido(nuevoPedido);
         Producto producto = (productoId != null) ? productoRepository.findById(productoId).orElse(null) : null;
@@ -37,11 +36,9 @@ public class PedidoService {
             throw new IllegalArgumentException("DATOS_INVALIDOS");
         }
 
-        // Asigna la relación JPA del producto
         nuevoPedido.setProducto(producto);
         nuevoPedido.setEstado(EstadoPedido.PENDIENTE);
 
-        // Si no hay stock suficiente, entra retenido
         if (nuevoPedido.getCantidad() > producto.getCantidad()) {
             nuevoPedido.setEstado(EstadoPedido.PARCIALMENTE_RETENIDO);
         }
@@ -49,7 +46,6 @@ public class PedidoService {
         return pedidoRepository.save(nuevoPedido);
     }
 
-    // Nivel 2 - Confirmar pedido (descuenta del stock)
     public Pedido confirmarPedido(Long id) {
         Pedido pedido = pedidoRepository.findById(id).orElse(null);
         if (pedido == null)
@@ -71,7 +67,6 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    // Nivel 3 - Cancelar pedido (repone stock si ya estaba confirmado)
     public Pedido cancelarPedido(Long id) {
         Pedido pedido = pedidoRepository.findById(id).orElse(null);
         if (pedido == null)
@@ -93,7 +88,6 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    // Nivel 4 - Despachar pedido
     public Pedido despacharPedido(Long id) {
         Pedido pedido = pedidoRepository.findById(id).orElse(null);
         if (pedido == null)
@@ -107,7 +101,6 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    // Nivel 5 - Consultas
     public List<Pedido> obtenerTodos() {
         return pedidoRepository.findAll();
     }
@@ -143,7 +136,6 @@ public class PedidoService {
         return resumen;
     }
 
-    // Nivel 6 - Algoritmo de prioridad
     public Pedido obtenerSiguiente() {
         return pedidoRepository.findByEstado(EstadoPedido.PENDIENTE).stream()
                 .min(Comparator
@@ -152,7 +144,6 @@ public class PedidoService {
                 .orElse(null);
     }
 
-    // Nivel 7 - Endpoint en riesgo
     public List<Pedido> obtenerEnRiesgo() {
         return pedidoRepository.findAll().stream()
                 .filter(p -> {
@@ -163,6 +154,15 @@ public class PedidoService {
                             || p.getEstado() == EstadoPedido.PARCIALMENTE_RETENIDO;
                 })
                 .collect(Collectors.toList());
+    }
+
+    // --- MÉTODOS BOSS 2 ---
+    public List<Pedido> obtenerPorPrioridad(PrioridadPedido prioridad) {
+        return pedidoRepository.findByPrioridad(prioridad);
+    }
+
+    public List<Pedido> buscarPorCliente(String cliente) {
+        return pedidoRepository.findByClienteContainingIgnoreCase(cliente);
     }
 
     private Long obtenerProductoIdDePedido(Pedido pedido) {
