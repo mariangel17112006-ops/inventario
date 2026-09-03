@@ -24,7 +24,9 @@ public class PedidoService {
 
     // Nivel 1 - Crear pedido
     public Pedido crearPedido(Pedido nuevoPedido) {
-        Producto producto = productoRepository.findById(nuevoPedido.getProductoId()).orElse(null);
+        Long productoId = obtenerProductoIdDePedido(nuevoPedido);
+        Producto producto = (productoId != null) ? productoRepository.findById(productoId).orElse(null) : null;
+
         if (producto == null) {
             throw new IllegalArgumentException("PRODUCTO_NO_EXISTE");
         }
@@ -35,6 +37,8 @@ public class PedidoService {
             throw new IllegalArgumentException("DATOS_INVALIDOS");
         }
 
+        // Asigna la relación JPA del producto
+        nuevoPedido.setProducto(producto);
         nuevoPedido.setEstado(EstadoPedido.PENDIENTE);
 
         // Si no hay stock suficiente, entra retenido
@@ -55,7 +59,7 @@ public class PedidoService {
             throw new IllegalStateException("Solo se pueden confirmar pedidos en estado PENDIENTE.");
         }
 
-        Producto producto = productoRepository.findById(pedido.getProductoId()).orElse(null);
+        Producto producto = pedido.getProducto();
         if (producto == null || producto.getCantidad() < pedido.getCantidad()) {
             throw new IllegalStateException("Stock insuficiente para confirmar el pedido.");
         }
@@ -78,7 +82,7 @@ public class PedidoService {
         }
 
         if (pedido.getEstado() == EstadoPedido.CONFIRMADO) {
-            Producto producto = productoRepository.findById(pedido.getProductoId()).orElse(null);
+            Producto producto = pedido.getProducto();
             if (producto != null) {
                 producto.setCantidad(producto.getCantidad() + pedido.getCantidad());
                 productoRepository.save(producto);
@@ -104,6 +108,14 @@ public class PedidoService {
     }
 
     // Nivel 5 - Consultas
+    public List<Pedido> obtenerTodos() {
+        return pedidoRepository.findAll();
+    }
+
+    public Optional<Pedido> obtenerPorId(Long id) {
+        return pedidoRepository.findById(id);
+    }
+
     public List<Pedido> obtenerPendientes() {
         return pedidoRepository.findByEstado(EstadoPedido.PENDIENTE);
     }
@@ -146,11 +158,18 @@ public class PedidoService {
                 .filter(p -> {
                     if (p.getEstado() == EstadoPedido.CANCELADO || p.getEstado() == EstadoPedido.DESPACHADO)
                         return false;
-                    Producto producto = productoRepository.findById(p.getProductoId()).orElse(null);
+                    Producto producto = p.getProducto();
                     return producto == null || producto.getCantidad() < p.getCantidad()
                             || p.getEstado() == EstadoPedido.PARCIALMENTE_RETENIDO;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private Long obtenerProductoIdDePedido(Pedido pedido) {
+        if (pedido.getProducto() != null && pedido.getProducto().getId() != null) {
+            return pedido.getProducto().getId();
+        }
+        return null;
     }
 
     private long contarPorEstado(List<Pedido> pedidos, EstadoPedido estado) {
