@@ -1,158 +1,81 @@
 package co.edu.sena.inventario.controller;
 
 import co.edu.sena.inventario.model.Producto;
+import co.edu.sena.inventario.repository.ProductoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/productos")
 public class ProductoController {
 
-    private List<Producto> productos = new ArrayList<>();
+    private final ProductoRepository productoRepository;
 
-    public ProductoController() {
-        // Cargar productos con cantidades para probar el Reto 8
-        productos.add(new Producto(1L, "Lechuga crespa", 1800.0, 3));   // Aparece (< 10)
-        productos.add(new Producto(2L, "Zanahoria", 2200.0, 8));        // Aparece (< 10)
-        productos.add(new Producto(3L, "Cebolla cabezona", 3500.0, 15)); // No aparece
-        productos.add(new Producto(4L, "Papa pastusa", 2500.0, 30));     // No aparece
-        productos.add(new Producto(5L, "Tomate chonto", 3000.0, 35));    // No aparece
+    public ProductoController(ProductoRepository productoRepository) {
+        this.productoRepository = productoRepository;
     }
 
-    // 1. GET -> Consultar todos los productos
     @GetMapping
     public List<Producto> obtenerTodos() {
-        return productos;
+        return productoRepository.findAll();
     }
 
-    // Reto 6: GET POR ID -> Devuelve 200 OK o 404 Not Found
     @GetMapping("/{id}")
     public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id) {
-        for (Producto p : productos) {
-            if (p.getId().equals(id)) {
-                return ResponseEntity.ok(p);
-            }
-        }
-        return ResponseEntity.notFound().build();
+        return productoRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Reto 5 y 7: POST con validaciones y código 201 Created
     @PostMapping
-    public ResponseEntity<?> crearProducto(@RequestBody Producto nuevo) {
-        if (nuevo.getNombre() == null || nuevo.getNombre().trim().isEmpty() ||
-            nuevo.getPrecio() == null || nuevo.getPrecio() <= 0 ||
-            nuevo.getCantidad() == null || nuevo.getCantidad() < 0) {
-            return ResponseEntity.badRequest().body("Datos del producto inválidos. Revisa el nombre, precio y cantidad.");
+    public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
+        if (producto.getId() != null && productoRepository.existsById(producto.getId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("El producto con ID " + producto.getId() + " ya existe.");
         }
-        productos.add(nuevo);
+        Producto nuevo = productoRepository.save(producto);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
-    // Reto 5: PUT con validaciones
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarProducto(@PathVariable Long id, @RequestBody Producto actualizado) {
-        for (Producto p : productos) {
-            if (p.getId().equals(id)) {
-                if (actualizado.getNombre() == null || actualizado.getNombre().trim().isEmpty() ||
-                    actualizado.getPrecio() == null || actualizado.getPrecio() <= 0 ||
-                    actualizado.getCantidad() == null || actualizado.getCantidad() < 0) {
-                    return ResponseEntity.badRequest().body("Datos del producto inválidos para actualizar.");
-                }
-                p.setNombre(actualizado.getNombre());
-                p.setPrecio(actualizado.getPrecio());
-                p.setCantidad(actualizado.getCantidad());
-                return ResponseEntity.ok(p);
-            }
+    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
+        if (!productoRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+        producto.setId(id);
+        Producto actualizado = productoRepository.save(producto);
+        return ResponseEntity.ok(actualizado);
     }
 
-    // Reto 4: GET /productos/precio?maximo=5000
-    @GetMapping("/precio")
-    public List<Producto> buscarPorPrecioMaximo(@RequestParam Double maximo) {
-        return productos.stream()
-                .filter(p -> p.getPrecio() <= maximo)
-                .collect(Collectors.toList());
-    }
-
-    // 5. DELETE -> Eliminar un producto por ID
     @DeleteMapping("/{id}")
-    public String eliminarProducto(@PathVariable Long id) {
-        productos.removeIf(p -> p.getId().equals(id));
-        return "Producto con ID " + id + " eliminado del inventario.";
+    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
+        if (!productoRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        productoRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 
-    // 6. FILTRAR POR NOMBRE (Reto 2)
+    // --- Endpoints Nivel 10 (Consultas derivadas) ---
+
+    // GET http://localhost:8080/productos/categoria/Electronica
+    @GetMapping("/categoria/{categoria}")
+    public List<Producto> obtenerPorCategoria(@PathVariable String categoria) {
+        return productoRepository.findByCategoria(categoria);
+    }
+
+    // GET http://localhost:8080/productos/buscar?nombre=laptop
     @GetMapping("/buscar")
     public List<Producto> buscarPorNombre(@RequestParam String nombre) {
-        return productos.stream()
-                .filter(p -> p.getNombre().toLowerCase().contains(nombre.toLowerCase()))
-                .collect(Collectors.toList());
+        return productoRepository.findByNombreContainingIgnoreCase(nombre);
     }
 
-    // 7. FILTRAR POR CATEGORÍA (Reto 3)
-    @GetMapping("/categoria")
-    public List<Producto> buscarPorCategoria(@RequestParam String nombre) {
-        return productos.stream()
-                .filter(p -> {
-                    if (nombre.equalsIgnoreCase("Hortalizas")) {
-                        return p.getNombre().contains("Lechuga") || p.getNombre().contains("Cebolla");
-                    } else if (nombre.equalsIgnoreCase("Tubérculos")) {
-                        return p.getNombre().contains("Zanahoria") || p.getNombre().contains("Papa");
-                    } else if (nombre.equalsIgnoreCase("Frutas")) {
-                        return p.getNombre().contains("Tomate");
-                    }
-                    return false;
-                })
-                .collect(Collectors.toList());
-    }
-
-    // 8. RESTAR STOCK EN VENTA
-    @GetMapping("/{id}/vender/{comprados}")
-    public String venderProducto(@PathVariable Long id, @PathVariable Integer comprados) {
-        for (Producto p : productos) {
-            if (p.getId().equals(id)) {
-                if (p.getCantidad() >= comprados) {
-                    int cantidadAnterior = p.getCantidad();
-                    int nuevaCantidad = cantidadAnterior - comprados;
-                    p.setCantidad(nuevaCantidad);
-                    return "¡Venta exitosa! El producto '" + p.getNombre() + "' tenía " + cantidadAnterior 
-                            + " unidades. Se vendieron " + comprados + " y ahora quedan " + nuevaCantidad + " en inventario.";
-                } else {
-                    return "Sin stock suficiente. Quedan " + p.getCantidad() + " unidades.";
-                }
-            }
-        }
-        return "Producto no encontrado.";
-    }
-
-    // Reto 8: GET /productos/stock-bajo?limite=10
-    @GetMapping("/stock-bajo")
-    public List<Producto> obtenerStockBajo(@RequestParam(defaultValue = "10") Integer limite) {
-        return productos.stream()
-                .filter(p -> p.getCantidad() < limite)
-                .collect(Collectors.toList());
-    }
-
-    // Reto 9: GET /productos/resumen
-    @GetMapping("/resumen")
-    public Map<String, Object> obtenerResumen() {
-        int totalProductos = productos.size();
-        int totalUnidades = productos.stream().mapToInt(Producto::getCantidad).sum();
-        double valorTotal = productos.stream().mapToDouble(p -> p.getPrecio() * p.getCantidad()).sum();
-
-        Map<String, Object> resumen = new HashMap<>();
-        resumen.put("totalProductos", totalProductos);
-        resumen.put("totalUnidades", totalUnidades);
-        resumen.put("valorTotalInventario", valorTotal);
-
-        return resumen;
+    // GET http://localhost:8080/productos/bajo-stock?limite=10
+    @GetMapping("/bajo-stock")
+    public List<Producto> buscarPorStockBajo(@RequestParam Integer limite) {
+        return productoRepository.findByCantidadLessThan(limite);
     }
 }
